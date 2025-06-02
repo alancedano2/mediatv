@@ -1,10 +1,5 @@
-// epg.js - Generador de EPG XML desde JSON personalizado
+import { DateTime } from "luxon";
 
-const fs = require("fs");
-const path = require("path");
-const { DateTime } = require("luxon");
-
-// Datos de canales con EPG personalizados
 const canales = [
   {
     id: "netflixeventos",
@@ -78,13 +73,13 @@ function formatoEPGTime(dt) {
   return dt.toUTC().toFormat("yyyyLLdd'T'HHmmss") + " +0000";
 }
 
-function generarEPG() {
+export default function handler(req, res) {
   const now = DateTime.utc();
   const dias = 14;
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<tv>`;
 
   for (const canal of canales) {
-    xml += `\n  <channel id=\"${canal.id}\">\n    <display-name>${canal.nombre}</display-name>\n  </channel>`;
+    xml += `\n  <channel id="${canal.id}">\n    <display-name>${canal.nombre}</display-name>\n  </channel>`;
   }
 
   for (let d = 0; d < dias; d++) {
@@ -98,7 +93,7 @@ function generarEPG() {
           if (prog.fecha === fecha) {
             const start = DateTime.fromISO(`${fecha}T${prog.inicio}`).toUTC();
             const stop = DateTime.fromISO(`${fecha}T${prog.fin}`).toUTC();
-            xml += `\n  <programme start=\"${formatoEPGTime(start)}\" stop=\"${formatoEPGTime(stop)}\" channel=\"${canal.id}\">\n    <title lang=\"es\">${prog.titulo}</title>\n    <desc lang=\"es\">${prog.titulo}</desc>\n  </programme>`;
+            xml += `\n  <programme start="${formatoEPGTime(start)}" stop="${formatoEPGTime(stop)}" channel="${canal.id}">\n    <title lang="es">${prog.titulo}</title>\n    <desc lang="es">${prog.titulo}</desc>\n  </programme>`;
           }
         });
         continue;
@@ -111,17 +106,13 @@ function generarEPG() {
       horarios.forEach(h => {
         const start = DateTime.fromISO(`${fecha}T${h.inicio}`).toUTC();
         const stop = DateTime.fromISO(`${fecha}T${h.fin}`).toUTC();
-        xml += `\n  <programme start=\"${formatoEPGTime(start)}\" stop=\"${formatoEPGTime(stop)}\" channel=\"${canal.id}\">\n    <title lang=\"es\">${h.titulo}</title>\n    <desc lang=\"es\">${h.titulo}</desc>\n  </programme>`;
+        xml += `\n  <programme start="${formatoEPGTime(start)}" stop="${formatoEPGTime(stop)}" channel="${canal.id}">\n    <title lang="es">${h.titulo}</title>\n    <desc lang="es">${h.titulo}</desc>\n  </programme>`;
       });
     }
   }
 
   xml += `\n</tv>`;
-  fs.writeFileSync(path.join(__dirname, "epg.xml"), xml, "utf-8");
-  console.log("✅ EPG generado exitosamente.");
-}
 
-// Ejecutar
-if (require.main === module) {
-  generarEPG();
+  res.setHeader("Content-Type", "application/xml");
+  res.status(200).send(xml);
 }
