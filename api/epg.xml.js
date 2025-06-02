@@ -1,9 +1,7 @@
-const fs = require("fs");
-const path = require("path");
-const { DateTime } = require("luxon");
+import { DateTime } from "luxon";
 
-// Tu programación de canales y EPG
 const canales = [
+  // tu arreglo de canales, igual que antes...
   {
     id: "netflixeventos",
     nombre: "Netflix Eventos",
@@ -12,6 +10,7 @@ const canales = [
       { dias: [5], inicio: "20:00", fin: "23:00", titulo: "WWE SmackDown" },
     ],
   },
+  // ... resto igual
   {
     id: "kq105tv",
     nombre: "KQ-105 TV",
@@ -72,22 +71,21 @@ const canales = [
   },
 ];
 
-// Función para convertir fechas al formato XMLTV con UTC y Z final
 function formatoEPGTime(dt) {
   return dt.toUTC().toFormat("yyyyLLdd'T'HHmmss'Z'");
 }
 
-function generarEPG() {
+export default function handler(req, res) {
   const now = DateTime.utc();
-  const dias = 14; // Generar para 14 días
+  const dias = 14; // 14 días de programación
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<tv>`;
 
-  // Definir los canales
+  // Definir canales
   for (const canal of canales) {
     xml += `\n  <channel id="${canal.id}">\n    <display-name>${canal.nombre}</display-name>\n  </channel>`;
   }
 
-  // Crear programas para cada día
+  // Programas para cada día y canal
   for (let d = 0; d < dias; d++) {
     const dia = now.plus({ days: d });
     const weekday = dia.weekday; // 1=lunes ... 7=domingo
@@ -128,10 +126,6 @@ function generarEPG() {
 
   xml += `\n</tv>`;
 
-  fs.writeFileSync(path.join(__dirname, "epg.xml"), xml, "utf-8");
-  console.log("✅ EPG generado exitosamente.");
-}
-
-if (require.main === module) {
-  generarEPG();
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.status(200).send(xml);
 }
