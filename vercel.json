@@ -1,0 +1,6 @@
+{
+  "routes": [
+    { "src": "/m3u.m3u", "dest": "/api/m3u.m3u.js" },
+    { "src": "/epg.xml", "dest": "/api/epg.xml.js" }
+  ]
+}
