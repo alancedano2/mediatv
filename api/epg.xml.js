@@ -1,16 +1,18 @@
 export default function handler(req, res) {
   res.setHeader("Content-Type", "application/xml");
-  const now = new Date();
-  const pad = n => String(n).padStart(2, '0');
 
-  const formatTime = date => {
-    return date.getUTCFullYear().toString() +
-           pad(date.getUTCMonth() + 1) +
-           pad(date.getUTCDate()) +
-           pad(date.getUTCHours()) +
-           pad(date.getUTCMinutes()) +
+  const pad = n => String(n).padStart(2, '0');
+  const formatTime = d => {
+    return d.getUTCFullYear().toString() +
+           pad(d.getUTCMonth() + 1) +
+           pad(d.getUTCDate()) +
+           pad(d.getUTCHours()) +
+           pad(d.getUTCMinutes()) +
            '00 +0000';
   };
+
+  const now = new Date();
+  const addHours = (date, h) => new Date(date.getTime() + h * 60 * 60 * 1000);
 
   const channels = [
     { id: "netflixeventos", name: "Netflix Eventos" },
@@ -25,34 +27,27 @@ export default function handler(req, res) {
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <tv generator-info-name="streamverse">`;
 
+  // Agrega los canales
   channels.forEach(c => {
     xml += `<channel id="${c.id}">
       <display-name>${c.name}</display-name>
     </channel>`;
   });
 
-  // Aquí va tu programación real (por ahora simplificada)
-  const addProgram = (channelId, start, stop, title) => {
-    xml += `<programme start="${start}" stop="${stop}" channel="${channelId}">
-      <title lang="es">${title}</title>
-    </programme>`;
-  };
+  // Añade programación a cada canal
+  channels.forEach(c => {
+    let start = new Date(now);
+    for (let i = 0; i < 6; i++) {
+      const end = addHours(start, 2);
+      xml += `
+<programme start="${formatTime(start)}" stop="${formatTime(end)}" channel="${c.id}">
+  <title lang="es">Programa ${i + 1} de ${c.name}</title>
+  <desc lang="es">Descripción del programa ${i + 1} en ${c.name}</desc>
+</programme>`;
+      start = end;
+    }
+  });
 
-  // Ejemplo de uso para KQ-105 (todos los días)
-  const startDate = new Date(now);
-  startDate.setUTCHours(6, 0, 0, 0);
-  for (let i = 0; i < 7; i++) {
-    const day = new Date(startDate);
-    day.setUTCDate(day.getUTCDate() + i);
-    let base = new Date(day);
-    
-    addProgram("kq105tv", formatTime(base), formatTime(new Date(base.setUTCHours(10))), "KQ Al Aire con Héctor Ortiz");
-    addProgram("kq105tv", formatTime(base), formatTime(new Date(base.setUTCHours(15))), "KQOnline con Alex Diaz");
-    addProgram("kq105tv", formatTime(base), formatTime(new Date(base.setUTCHours(18))), "La Tendencia de Molusco");
-    addProgram("kq105tv", formatTime(base), formatTime(new Date(base.setUTCHours(19))), "KQ con Pedro Villegas");
-    addProgram("kq105tv", formatTime(base), formatTime(new Date(base.setUTCHours(24))), "Videos Musicales");
-  }
-
-  xml += `</tv>`;
+  xml += `\n</tv>`;
   res.status(200).send(xml);
 }
