@@ -1,7 +1,6 @@
 import { DateTime } from "luxon";
 
 const canales = [
-  // tu arreglo de canales, igual que antes...
   {
     id: "netflixeventos",
     nombre: "Netflix Eventos",
@@ -10,7 +9,6 @@ const canales = [
       { dias: [5], inicio: "20:00", fin: "23:00", titulo: "WWE SmackDown" },
     ],
   },
-  // ... resto igual
   {
     id: "kq105tv",
     nombre: "KQ-105 TV",
@@ -88,15 +86,15 @@ export default function handler(req, res) {
   // Programas para cada día y canal
   for (let d = 0; d < dias; d++) {
     const dia = now.plus({ days: d });
-    const weekday = dia.weekday; // 1=lunes ... 7=domingo
-    const fecha = dia.toFormat("yyyy-MM-dd");
+    const weekday = dia.setZone('America/Puerto_Rico').weekday; // Para usar la zona PR en el día de la semana
+    const fecha = dia.setZone('America/Puerto_Rico').toFormat("yyyy-MM-dd");
 
     for (const canal of canales) {
       if (canal.epg_fechas) {
         canal.epg_fechas.forEach(prog => {
           if (prog.fecha === fecha) {
-            const start = DateTime.fromISO(`${fecha}T${prog.inicio}`).toUTC();
-            let stop = DateTime.fromISO(`${fecha}T${prog.fin}`).toUTC();
+            const start = DateTime.fromISO(`${fecha}T${prog.inicio}`, { zone: 'America/Puerto_Rico' }).toUTC();
+            let stop = DateTime.fromISO(`${fecha}T${prog.fin}`, { zone: 'America/Puerto_Rico' }).toUTC();
             if (prog.fin === "00:00") stop = stop.plus({ days: 1 });
             xml += `\n  <programme start="${formatoEPGTime(start)}" stop="${formatoEPGTime(stop)}" channel="${canal.id}">` +
                    `\n    <title lang="es">${prog.titulo}</title>` +
@@ -112,8 +110,8 @@ export default function handler(req, res) {
       );
 
       programas.forEach(p => {
-        const start = DateTime.fromISO(`${fecha}T${p.inicio}`).toUTC();
-        let stop = DateTime.fromISO(`${fecha}T${p.fin}`).toUTC();
+        const start = DateTime.fromISO(`${fecha}T${p.inicio}`, { zone: 'America/Puerto_Rico' }).toUTC();
+        let stop = DateTime.fromISO(`${fecha}T${p.fin}`, { zone: 'America/Puerto_Rico' }).toUTC();
         if (p.fin === "00:00") stop = stop.plus({ days: 1 });
 
         xml += `\n  <programme start="${formatoEPGTime(start)}" stop="${formatoEPGTime(stop)}" channel="${canal.id}">` +
