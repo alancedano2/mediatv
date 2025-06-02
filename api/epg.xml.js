@@ -1,5 +1,8 @@
-import { DateTime } from "luxon";
+const fs = require("fs");
+const path = require("path");
+const { DateTime } = require("luxon");
 
+// Tu programación de canales y EPG
 const canales = [
   {
     id: "netflixeventos",
@@ -69,19 +72,22 @@ const canales = [
   },
 ];
 
+// Función para convertir fechas al formato XMLTV con UTC y Z final
 function formatoEPGTime(dt) {
-  return dt.toUTC().toFormat("yyyyLLdd'T'HHmmss") + " +0000";
+  return dt.toUTC().toFormat("yyyyLLdd'T'HHmmss'Z'");
 }
 
-export default function handler(req, res) {
+function generarEPG() {
   const now = DateTime.utc();
-  const dias = 14;
+  const dias = 14; // Generar para 14 días
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<tv>`;
 
+  // Definir los canales
   for (const canal of canales) {
     xml += `\n  <channel id="${canal.id}">\n    <display-name>${canal.nombre}</display-name>\n  </channel>`;
   }
 
+  // Crear programas para cada día
   for (let d = 0; d < dias; d++) {
     const dia = now.plus({ days: d });
     const weekday = dia.weekday; // 1=lunes ... 7=domingo
@@ -92,27 +98,40 @@ export default function handler(req, res) {
         canal.epg_fechas.forEach(prog => {
           if (prog.fecha === fecha) {
             const start = DateTime.fromISO(`${fecha}T${prog.inicio}`).toUTC();
-            const stop = DateTime.fromISO(`${fecha}T${prog.fin}`).toUTC();
-            xml += `\n  <programme start="${formatoEPGTime(start)}" stop="${formatoEPGTime(stop)}" channel="${canal.id}">\n    <title lang="es">${prog.titulo}</title>\n    <desc lang="es">${prog.titulo}</desc>\n  </programme>`;
+            let stop = DateTime.fromISO(`${fecha}T${prog.fin}`).toUTC();
+            if (prog.fin === "00:00") stop = stop.plus({ days: 1 });
+            xml += `\n  <programme start="${formatoEPGTime(start)}" stop="${formatoEPGTime(stop)}" channel="${canal.id}">` +
+                   `\n    <title lang="es">${prog.titulo}</title>` +
+                   `\n    <desc lang="es">${prog.titulo}</desc>` +
+                   `\n  </programme>`;
           }
         });
         continue;
       }
 
-      const horarios = canal.epg.filter(p =>
+      const programas = canal.epg.filter(p =>
         p.todos || (p.dias && p.dias.includes(weekday))
       );
 
-      horarios.forEach(h => {
-        const start = DateTime.fromISO(`${fecha}T${h.inicio}`).toUTC();
-        const stop = DateTime.fromISO(`${fecha}T${h.fin}`).toUTC();
-        xml += `\n  <programme start="${formatoEPGTime(start)}" stop="${formatoEPGTime(stop)}" channel="${canal.id}">\n    <title lang="es">${h.titulo}</title>\n    <desc lang="es">${h.titulo}</desc>\n  </programme>`;
+      programas.forEach(p => {
+        const start = DateTime.fromISO(`${fecha}T${p.inicio}`).toUTC();
+        let stop = DateTime.fromISO(`${fecha}T${p.fin}`).toUTC();
+        if (p.fin === "00:00") stop = stop.plus({ days: 1 });
+
+        xml += `\n  <programme start="${formatoEPGTime(start)}" stop="${formatoEPGTime(stop)}" channel="${canal.id}">` +
+               `\n    <title lang="es">${p.titulo}</title>` +
+               `\n    <desc lang="es">${p.titulo}</desc>` +
+               `\n  </programme>`;
       });
     }
   }
 
   xml += `\n</tv>`;
 
-  res.setHeader("Content-Type", "application/xml");
-  res.status(200).send(xml);
+  fs.writeFileSync(path.join(__dirname, "epg.xml"), xml, "utf-8");
+  console.log("✅ EPG generado exitosamente.");
+}
+
+if (require.main === module) {
+  generarEPG();
 }
