@@ -1,68 +1,88 @@
-// /api/epg.xml.js
+// api/epg.xml.js
 
-export default function handler(req, res) {
-  // Ejemplo simple de canales y programas
-  const canales = [
-    {
-      id: 'kq105tv',
-      nombre: 'KQ105 TV',
-      programas: [
-        {
-          titulo: 'Fuera del Aire',
-          inicio: '2025-06-02T04:00:00.000Z',
-          fin: '2025-06-02T10:00:00.000Z',
-        },
-        {
-          titulo: 'KQ Al Aire con Héctor Ortiz',
-          inicio: '2025-06-02T10:00:00.000Z',
-          fin: '2025-06-02T14:00:00.000Z',
-        },
-        // ...otros programas
-      ],
-    },
-    // Puedes agregar más canales aquí
-  ];
+export const config = {
+  runtime: 'edge',
+};
 
-  // Función para convertir fecha ISO a formato EPG (YYYYMMDDHHMMSS + timezone)
-  function formatoEPG(fechaISO) {
-    const fecha = new Date(fechaISO);
-    // Ejemplo: 20250602040000 +0000 (UTC)
-    const pad = (n) => n.toString().padStart(2, '0');
-    const yyyy = fecha.getUTCFullYear();
-    const mm = pad(fecha.getUTCMonth() + 1);
-    const dd = pad(fecha.getUTCDate());
-    const hh = pad(fecha.getUTCHours());
-    const min = pad(fecha.getUTCMinutes());
-    const ss = pad(fecha.getUTCSeconds());
-    return `${yyyy}${mm}${dd}${hh}${min}${ss} +0000`;
+function formatDate(date) {
+  const pad = (n) => n.toString().padStart(2, '0');
+  return (
+    date.getUTCFullYear().toString() +
+    pad(date.getUTCMonth() + 1) +
+    pad(date.getUTCDate()) +
+    pad(date.getUTCHours()) +
+    pad(date.getUTCMinutes()) +
+    pad(date.getUTCSeconds()) +
+    ' +0000'
+  );
+}
+
+function getProgramsForChannel(channel) {
+  const now = new Date();
+  const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+
+  const programs = [];
+
+  if (channel === 'kq105tv') {
+    const shows = [
+      ['Fuera del Aire', 4, 10],
+      ['KQ Al Aire con Héctor Ortiz', 10, 14],
+      ['KQOnline con Alex Diaz', 14, 19],
+      ['La Tendencia de Molusco con Ali, Pamela y Robert', 19, 22],
+      ['KQ Al Aire con Pedro Villegas', 22, 23],
+      ['Videos Musicales powered by KQ-105', 23, 28],
+    ];
+
+    for (let i = 0; i < 3; i++) {
+      const base = new Date(day.getTime() + i * 86400000);
+      for (const [title, startHour, endHour] of shows) {
+        const start = new Date(base.getTime() + startHour * 3600000);
+        const end = new Date(base.getTime() + endHour * 3600000);
+        programs.push({ channel, title, start, end });
+      }
+    }
+
+  } else if (channel === 'netflixeventos') {
+    const rawStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+    const start = new Date(rawStart.getTime() + 24 * 3600000); // mañana a las 00:00
+    const end = new Date(start.getTime() + 3 * 3600000); // 3 horas
+
+    programs.push({
+      channel,
+      title: 'WWE RAW',
+      start,
+      end,
+    });
   }
 
-  // Construir XML EPG básico
-  let epgXml = `<?xml version="1.0" encoding="UTF-8" ?>
-<tv>
-`;
+  return programs;
+}
 
-  // Añadir canales
-  for (const canal of canales) {
-    epgXml += `  <channel id="${canal.id}">
-    <display-name>${canal.nombre}</display-name>
-  </channel>
-`;
+export default function handler(req) {
+  const channels = ['kq105tv', 'netflixeventos'];
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<tv>\n`;
+
+  // Channel definitions
+  for (const channel of channels) {
+    xml += `  <channel id="${channel}">\n    <display-name>${channel}</display-name>\n  </channel>\n`;
   }
 
-  // Añadir programas
-  for (const canal of canales) {
-    for (const programa of canal.programas) {
-      epgXml += `  <programme start="${formatoEPG(programa.inicio)}" stop="${formatoEPG(programa.fin)}" channel="${canal.id}">
-    <title>${programa.titulo}</title>
-  </programme>
-`;
+  // Program definitions
+  for (const channel of channels) {
+    const programs = getProgramsForChannel(channel);
+    for (const p of programs) {
+      xml += `  <programme start="${formatDate(p.start)}" stop="${formatDate(p.end)}" channel="${p.channel}">\n`;
+      xml += `    <title lang="es">${p.title}</title>\n`;
+      xml += `  </programme>\n`;
     }
   }
 
-  epgXml += '</tv>';
+  xml += `</tv>`;
 
-  // Responder con XML
-  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-  res.status(200).send(epgXml);
+  return new Response(xml, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/xml; charset=utf-8',
+    },
+  });
 }
