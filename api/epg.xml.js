@@ -20,69 +20,100 @@ function formatDate(date) {
 function getProgramsForChannel(channel) {
   const now = new Date();
   const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
-
   const programs = [];
 
-  if (channel === 'kq105tv') {
-    const shows = [
-      ['Fuera del Aire', 4, 10],
-      ['KQ Al Aire con Héctor Ortiz', 10, 14],
-      ['KQOnline con Alex Diaz', 14, 19],
-      ['La Tendencia de Molusco con Ali, Pamela y Robert', 19, 22],
-      ['KQ Al Aire con Pedro Villegas', 22, 23],
-      ['Videos Musicales powered by KQ-105', 23, 28],
-    ];
+  const addShow = (title, start, end) => {
+    programs.push({ channel, title, start, end });
+  };
 
-    for (let i = 0; i < 3; i++) {
-      const base = new Date(day.getTime() + i * 86400000);
-      for (const [title, startHour, endHour] of shows) {
-        const start = new Date(base.getTime() + startHour * 3600000);
-        const end = new Date(base.getTime() + endHour * 3600000);
-        programs.push({ channel, title, start, end });
+  const addDailyShow = (title, hourStart, hourEnd, dayOffset = 0) => {
+    const start = new Date(day.getTime() + dayOffset * 86400000 + hourStart * 3600000);
+    const end = new Date(day.getTime() + dayOffset * 86400000 + hourEnd * 3600000);
+    addShow(title, start, end);
+  };
+
+  const addFullDay = (title, dayOffset = 0) => {
+    const start = new Date(day.getTime() + dayOffset * 86400000);
+    const end = new Date(start.getTime() + 86400000);
+    addShow(title, start, end);
+  };
+
+  switch (channel) {
+    case 'ppv01':
+    case 'mlb':
+    case 'bsnpr':
+      for (let i = 0; i < 10; i++) {
+        addFullDay('Visite mediaiptv.vercel.app para más detalles', i);
       }
+      break;
+
+    case 'nba': {
+      const games = [
+        [5, 20, 23, 'NBA Finals presented by Youtube: Indiana Pacers vs Oklahoma City Thunder Game 1'],
+        [8, 20, 23, 'NBA Finals presented by Youtube: Indiana Pacers vs Oklahoma City Thunder Game 2'],
+        [11, 20, 23, 'NBA Finals presented by Youtube: Indiana Pacers vs Oklahoma City Thunder Game 3'],
+        [13, 20, 23, 'NBA Finals presented by Youtube: Indiana Pacers vs Oklahoma City Thunder Game 4'],
+      ];
+      for (let i = 2; i <= 13; i++) {
+        const isGameDay = games.find(g => g[0] === i);
+        if (isGameDay) {
+          addDailyShow('Fuera del Aire', 0, isGameDay[1], i);
+          addDailyShow(isGameDay[3], isGameDay[1], isGameDay[2], i);
+        } else {
+          addFullDay('Fuera del Aire', i);
+        }
+      }
+      break;
     }
 
-  } else if (channel === 'netflixeventos') {
-    const rawStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
-    const start = new Date(rawStart.getTime() + 24 * 3600000); // mañana a las 00:00
-    const end = new Date(start.getTime() + 3 * 3600000); // 3 horas
-
-    programs.push({
-      channel,
-      title: 'WWE RAW',
-      start,
-      end,
-    });
+    case 'ewo': {
+      for (let i = 0; i < 14; i++) {
+        const date = new Date(day.getTime() + i * 86400000);
+        const weekday = date.getUTCDay();
+        if (weekday === 6 || weekday === 0) {
+          addFullDay('Fuera del Aire', i);
+        } else {
+          addDailyShow('Fuera del Aire', 0, 8, i);
+          addDailyShow('eWo La Verdad Absoluta', 8, 9.5, i);
+          addDailyShow('Cuenta Regresiva para eWo El Update', 9.5, 10, i);
+          addDailyShow('eWo El Update', 10, 11, i);
+          addDailyShow('eWo ThrowBack', 11, 15, i);
+          addDailyShow('eWo El Perfil', 15, 15.5, i);
+          addDailyShow('eWo 24/7 Retro', 15.5, 17.5, i);
+          addDailyShow('Fuera del Aire', 17.5, 22, i);
+        }
+      }
+      break;
+    }
   }
 
   return programs;
 }
 
-export default function handler(req) {
-  const channels = ['kq105tv', 'netflixeventos'];
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<tv>\n`;
+export default async function handler(req) {
+  const channels = ['ppv01', 'nba', 'mlb', 'ewo', 'bsnpr'];
+  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<tv generator-info-name="mediaiptv.vercel.app">\n';
 
-  // Channel definitions
   for (const channel of channels) {
-    xml += `  <channel id="${channel}">\n    <display-name>${channel}</display-name>\n  </channel>\n`;
+    xml += `<channel id="${channel}">\n`;
+    xml += `<display-name>${channel.toUpperCase()}</display-name>\n`;
+    xml += `</channel>\n`;
   }
 
-  // Program definitions
   for (const channel of channels) {
     const programs = getProgramsForChannel(channel);
     for (const p of programs) {
-      xml += `  <programme start="${formatDate(p.start)}" stop="${formatDate(p.end)}" channel="${p.channel}">\n`;
-      xml += `    <title lang="es">${p.title}</title>\n`;
-      xml += `  </programme>\n`;
+      xml += `<programme start="${formatDate(p.start)}" stop="${formatDate(p.end)}" channel="${channel}">\n`;
+      xml += `<title>${p.title}</title>\n`;
+      xml += `</programme>\n`;
     }
   }
 
-  xml += `</tv>`;
+  xml += '</tv>';
 
   return new Response(xml, {
-    status: 200,
     headers: {
-      'Content-Type': 'application/xml; charset=utf-8',
+      'Content-Type': 'application/xml',
     },
   });
 }
