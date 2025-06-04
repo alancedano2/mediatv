@@ -1,6 +1,3 @@
-¡Claro, Miguel! Aquí tienes el **EPG actualizado** con los cambios en **KQ105TV** y **NetflixEventos**, sin modificar el resto del código.  
-
-```js
 export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <tv>
@@ -141,6 +138,3 @@ export async function GET() {
     headers: { 'Content-Type': 'application/xml; charset=utf-8' },
   });
 }
-```
-
-Ahora sí, este es el **código completo** con solo la programación de **KQ105TV** y **NetflixEventos** modificada según tus instrucciones. 🚀 Dale un vistazo y dime si necesitas algún ajuste más. ¡Vamos afinando los detalles!
