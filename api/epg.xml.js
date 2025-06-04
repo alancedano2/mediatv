@@ -4,7 +4,7 @@ export default function handler(req, res) {
   ];
 
   const now = new Date();
-  const timezoneOffset = -4; // Puerto Rico UTC-4
+  const timezoneOffset = -4; // UTC-4
   now.setUTCHours(now.getUTCHours() + timezoneOffset);
 
   const getFormattedTime = (date) => {
@@ -16,17 +16,22 @@ export default function handler(req, res) {
   channels.forEach(channel => {
     epg += `  <channel id="${channel}">\n    <display-name>${channel.toUpperCase()}</display-name>\n  </channel>\n`;
 
-    // Generar bloques de 2 horas por 24 horas
-    for (let i = 0; i < 24; i += 2) {
-      const start = new Date(now);
-      start.setHours(i, 0, 0, 0);
-      const stop = new Date(now);
-      stop.setHours(i + 2, 0, 0, 0);
+    const blockHours = 2;
+    const days = 90;
+    const totalBlocks = (24 / blockHours) * days; // 12 bloques por día * 90 días
+
+    let start = new Date(now);
+
+    for (let i = 0; i < totalBlocks; i++) {
+      let stop = new Date(start);
+      stop.setHours(stop.getHours() + blockHours);
 
       epg += `  <programme start="${getFormattedTime(start)}" stop="${getFormattedTime(stop)}" channel="${channel}">\n`;
       epg += `    <title lang="es">Visiten "mediaiptv.vercel.app" para más detalles</title>\n`;
       epg += `    <desc lang="es">En mediaiptv.vercel.app encontrarás la programación completa, horarios y más contenido de cada canal.</desc>\n`;
       epg += `  </programme>\n`;
+
+      start = new Date(stop);
     }
   });
 
