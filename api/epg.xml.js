@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?>
+export async function GET() {
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <tv>
 
   <!-- PPV 01 -->
@@ -43,23 +44,7 @@
     <icon src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" />
   </channel>
 
-  <!-- Programación de NetflixEventos -->
-  <programme start="20250607000000 -0400" stop="20250807000000 -0400" channel="netflixeventos">
-    <title>Fuera del Aire</title>
-    <desc>Fuera del Aire</desc>
-  </programme>
-  <programme start="20250603210000 -0400" stop="20250603223000 -0400" channel="netflixeventos">
-    <title>WWE Raw</title>
-    <desc>Evento de lucha libre en vivo</desc>
-  </programme>
-  <programme start="20250604210000 -0400" stop="20250604230000 -0400" channel="netflixeventos">
-    <title>WWE NXT</title>
-    <desc>Evento de lucha libre en vivo</desc>
-  </programme>
-  <programme start="20250607210000 -0400" stop="20250607240000 -0400" channel="netflixeventos">
-    <title>WWE SmackDown</title>
-    <desc>Evento de lucha libre en vivo</desc>
-  </programme>
+  ${generateNetflixEventosEPG()}
 
   <!-- EWO TV -->
   <channel id="ewotv">
@@ -67,39 +52,7 @@
     <icon src="https://ewopr-puce.vercel.app/logo.png" />
   </channel>
 
-  <!-- Programación de EWO TV -->
-  <programme start="20250603000000 -0400" stop="20250603080000 -0400" channel="ewotv">
-    <title>Fuera del Aire</title>
-    <desc>Fuera del Aire</desc>
-  </programme>
-  <programme start="20250603080000 -0400" stop="20250603093000 -0400" channel="ewotv">
-    <title>eWo La Verdad Absoluta</title>
-    <desc>Programa informativo</desc>
-  </programme>
-  <programme start="20250603093000 -0400" stop="20250603100000 -0400" channel="ewotv">
-    <title>Cuenta Regresiva para eWo El Update</title>
-    <desc>Previo al programa principal</desc>
-  </programme>
-  <programme start="20250603100000 -0400" stop="20250603110000 -0400" channel="ewotv">
-    <title>eWo El Update</title>
-    <desc>Noticias de eWo</desc>
-  </programme>
-  <programme start="20250603110000 -0400" stop="20250603150000 -0400" channel="ewotv">
-    <title>eWo ThrowBack</title>
-    <desc>Repeticiones clásicas</desc>
-  </programme>
-  <programme start="20250603150000 -0400" stop="20250603153000 -0400" channel="ewotv">
-    <title>eWo El Perfil</title>
-    <desc>Entrevistas</desc>
-  </programme>
-  <programme start="20250603153000 -0400" stop="20250603173000 -0400" channel="ewotv">
-    <title>eWo 24/7 Retro</title>
-    <desc>Programación nostálgica</desc>
-  </programme>
-  <programme start="20250603173000 -0400" stop="20250803220000 -0400" channel="ewotv">
-    <title>Fuera del Aire</title>
-    <desc>Fuera del Aire</desc>
-  </programme>
+  ${generateEwoTVEPG()}
 
   <!-- BSN PR -->
   <channel id="bsnpr">
@@ -111,4 +64,61 @@
     <desc>Visite mediaiptv.vercel.app para más detalles</desc>
   </programme>
 
-</tv>
+</tv>`;
+
+  return new Response(xml, {
+    headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+  });
+}
+
+// Programación detallada de NetflixEventos
+function generateNetflixEventosEPG() {
+  return `
+    <programme start="20250603210000 -0400" stop="20250603223000 -0400" channel="netflixeventos">
+      <title>WWE Raw</title>
+      <desc>Evento de lucha libre en vivo</desc>
+    </programme>
+    <programme start="20250604210000 -0400" stop="20250604230000 -0400" channel="netflixeventos">
+      <title>WWE NXT</title>
+      <desc>Evento de lucha libre en vivo</desc>
+    </programme>
+    <programme start="20250607210000 -0400" stop="20250607240000 -0400" channel="netflixeventos">
+      <title>WWE SmackDown</title>
+      <desc>Evento de lucha libre en vivo</desc>
+    </programme>
+  `;
+}
+
+// Programación detallada de EWO TV
+function generateEwoTVEPG() {
+  return `
+    <programme start="20250603080000 -0400" stop="20250603093000 -0400" channel="ewotv">
+      <title>eWo La Verdad Absoluta</title>
+      <desc>Programa informativo</desc>
+    </programme>
+    <programme start="20250603093000 -0400" stop="20250603100000 -0400" channel="ewotv">
+      <title>Cuenta Regresiva para eWo El Update</title>
+      <desc>Previo al programa principal</desc>
+    </programme>
+    <programme start="20250603100000 -0400" stop="20250603110000 -0400" channel="ewotv">
+      <title>eWo El Update</title>
+      <desc>Noticias de eWo</desc>
+    </programme>
+    <programme start="20250603110000 -0400" stop="20250603150000 -0400" channel="ewotv">
+      <title>eWo ThrowBack</title>
+      <desc>Repeticiones clásicas</desc>
+    </programme>
+    <programme start="20250603150000 -0400" stop="20250603153000 -0400" channel="ewotv">
+      <title>eWo El Perfil</title>
+      <desc>Entrevistas</desc>
+    </programme>
+    <programme start="20250603153000 -0400" stop="20250603173000 -0400" channel="ewotv">
+      <title>eWo 24/7 Retro</title>
+      <desc>Programación nostálgica</desc>
+    </programme>
+    <programme start="20250603173000 -0400" stop="20250803220000 -0400" channel="ewotv">
+      <title>Fuera del Aire</title>
+      <desc>Fuera del Aire</desc>
+    </programme>
+  `;
+}
