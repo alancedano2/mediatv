@@ -1,42 +1,62 @@
-export default function handler(req, res) {
+export async function GET() {
   const channels = [
-    "ppv01", "bsnpr", "nba", "kq105tv", "mlb", "netflixeventos", "ewotv"
+    { id: 'ppv01', name: 'PPV 01', icon: 'https://upload.wikimedia.org/wikipedia/commons/c/ca/Shaw_PPV.png' },
+    { id: 'bsnpr', name: 'BSN PR', icon: 'https://upload.wikimedia.org/wikipedia/en/f/fe/Baloncesto_Superior_Nacional.png' },
+    { id: 'nba', name: 'NBA', icon: 'https://cdn.freebiesupply.com/images/large/2x/nba-logo-transparent.png' },
+    { id: 'kq105tv', name: 'KQ105TV', icon: 'https://upload.wikimedia.org/wikipedia/commons/3/3f/KQ_105_Logo.png' },
+    { id: 'mlb', name: 'MLB', icon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Major_League_Baseball_logo.svg/1200px-Major_League_Baseball_logo.svg.png' },
+    { id: 'netflixeventos', name: 'Netflix Eventos', icon: 'https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg' },
+    { id: 'ewotv', name: 'EWO TV', icon: 'https://ewopr-puce.vercel.app/logo.png' },
   ];
 
   const now = new Date();
-  const timezoneOffset = -4; // UTC-4
-  now.setUTCHours(now.getUTCHours() + timezoneOffset);
+  const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endDate = new Date(startDate);
+  endDate.setMonth(endDate.getMonth() + 3); // 3 meses de programación
 
-  const getFormattedTime = (date) => {
-    return date.toISOString().replace(/[-:]/g, '').split('.')[0] + ' +0000';
+  const pad = (num) => num.toString().padStart(2, '0');
+
+  const formatDate = (date) => {
+    return (
+      date.getFullYear().toString() +
+      pad(date.getMonth() + 1) +
+      pad(date.getDate()) +
+      pad(date.getHours()) +
+      pad(date.getMinutes()) +
+      pad(date.getSeconds()) +
+      ' -0400'
+    );
   };
 
-  let epg = `<?xml version="1.0" encoding="UTF-8"?>\n<tv>\n`;
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<tv>\n`;
 
-  channels.forEach(channel => {
-    epg += `  <channel id="${channel}">\n    <display-name>${channel.toUpperCase()}</display-name>\n  </channel>\n`;
+  // Agregar canales
+  for (const channel of channels) {
+    xml += `  <channel id="${channel.id}">\n`;
+    xml += `    <display-name>${channel.name}</display-name>\n`;
+    xml += `    <icon src="${channel.icon}" />\n`;
+    xml += `  </channel>\n`;
+  }
 
-    const blockHours = 2;
-    const days = 90;
-    const totalBlocks = (24 / blockHours) * days; // 12 bloques por día * 90 días
+  // Agregar programación 24/7
+  for (const channel of channels) {
+    let current = new Date(startDate);
+    while (current < endDate) {
+      const next = new Date(current);
+      next.setDate(next.getDate() + 1);
 
-    let start = new Date(now);
+      xml += `  <programme start="${formatDate(current)}" stop="${formatDate(next)}" channel="${channel.id}">\n`;
+      xml += `    <title lang="es">Visiten "mediaiptv.vercel.app" para más detalles</title>\n`;
+      xml += `    <desc lang="es">En mediaiptv.vercel.app encontrarás la programación completa y actualizada de este canal.</desc>\n`;
+      xml += `  </programme>\n`;
 
-    for (let i = 0; i < totalBlocks; i++) {
-      let stop = new Date(start);
-      stop.setHours(stop.getHours() + blockHours);
-
-      epg += `  <programme start="${getFormattedTime(start)}" stop="${getFormattedTime(stop)}" channel="${channel}">\n`;
-      epg += `    <title lang="es">Visiten "mediaiptv.vercel.app" para más detalles</title>\n`;
-      epg += `    <desc lang="es">En mediaiptv.vercel.app encontrarás la programación completa, horarios y más contenido de cada canal.</desc>\n`;
-      epg += `  </programme>\n`;
-
-      start = new Date(stop);
+      current = next;
     }
+  }
+
+  xml += `</tv>`;
+
+  return new Response(xml, {
+    headers: { 'Content-Type': 'application/xml; charset=utf-8' },
   });
-
-  epg += `</tv>`;
-
-  res.setHeader('Content-Type', 'application/xml');
-  res.status(200).send(epg);
 }
